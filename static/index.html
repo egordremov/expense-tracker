@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expenses from e-mail</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+<script src="/static/i18n.js"></script>
+<script src="/static/api.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f5f7;color:#222;padding:24px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.top .right{display:flex;gap:8px;align-items:center}
+h1{font-size:22px}
+a.settings{color:#1a73e8;text-decoration:none;font-size:14px;padding:8px 12px;border:1px solid #cfd8e3;border-radius:6px;background:#fff}
+.bar{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+button{padding:9px 16px;background:#1a73e8;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px}
+button:disabled{opacity:.6;cursor:default}
+select,input[type=date]{padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px;background:#fff}
+.range{display:flex;gap:6px;align-items:center;font-size:14px;color:#444}
+.period{font-size:15px;color:#333;margin:4px 0 16px}
+.period b{font-weight:600}
+.msg{padding:10px 14px;border-radius:6px;margin-bottom:16px;display:none}
+.msg.success{display:block;background:#e6f4ea;color:#1e4620}.msg.partial{display:block;background:#fff4e5;color:#7a4b00}.msg.error{display:block;background:#fce8e6;color:#8a1c12}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.card{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.card .l{font-size:12px;color:#666;margin-bottom:4px}.card .v{font-size:26px;font-weight:600}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:20px}
+.chart{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.chart h3{font-size:14px;margin-bottom:10px;color:#444}
+table{width:100%;background:#fff;border-collapse:collapse;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+th{background:#fafafa;text-align:left;padding:10px 12px;font-size:13px;color:#555;border-bottom:1px solid #e5e5e5}
+td{padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:14px}
+.badge{background:#eef1f5;border-radius:12px;padding:3px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+.store{background:#e8f0fe;color:#174ea6}
+.amt{font-weight:600;text-align:right;white-space:nowrap}
+.muted{color:#888;font-size:12px}
+th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+th.sortable:hover{background:#f0f0f0}
+th.sortable::after{content:" ↕";color:#bbb}
+th.sortable.asc::after{content:" ↑";color:#1a73e8}
+th.sortable.desc::after{content:" ↓";color:#1a73e8}
+</style>
+</head>
+<body data-title-key="app_title"><div class="wrap">
+<div class="top"><h1 data-i18n="app_title"></h1>
+  <div class="right"><select class="langSel" data-i18n-title="lang"><option value="ru">RU</option><option value="en">EN</option><option value="lt">LT</option></select><a class="settings" href="/settings" data-i18n="settings"></a></div></div>
+<div class="bar">
+  <button id="syncBtn" onclick="sync()" data-i18n="sync_btn"></button>
+  <select id="preset" onchange="applyPreset(this.value)">
+    <option value="7" data-i18n="preset_7"></option>
+    <option value="30" data-i18n="preset_30"></option>
+    <option value="thisMonth" data-i18n="preset_thisMonth"></option>
+    <option value="lastMonth" data-i18n="preset_lastMonth"></option>
+    <option value="90" data-i18n="preset_90"></option>
+    <option value="365" data-i18n="preset_365"></option>
+    <option value="all" data-i18n="preset_all"></option>
+    <option value="custom" data-i18n="preset_custom"></option>
+  </select>
+  <span class="range"><span data-i18n="from"></span> <input type="date" id="from" onchange="applyCustom()"> <span data-i18n="to"></span> <input type="date" id="to" onchange="applyCustom()"></span>
+  <select id="storeFilter" onchange="setStore(this.value)"><option value="" data-i18n="all_stores"></option></select>
+  <select id="catFilter" onchange="setFilter(this.value)"><option value="" data-i18n="all_categories"></option></select>
+</div>
+<div class="period" id="periodLine"></div>
+<div id="healthAlert" class="msg"></div>
+<div id="msg" class="msg"></div>
+<div class="cards">
+  <div class="card"><div class="l" data-i18n="card_total"></div><div class="v" id="total">0 €</div></div>
+  <div class="card"><div class="l" data-i18n="card_receipts"></div><div class="v" id="receipts">0</div></div>
+  <div class="card"><div class="l" data-i18n="card_avg"></div><div class="v" id="average">0 €</div></div>
+  <div class="card"><div class="l" data-i18n="card_perday"></div><div class="v" id="perday">0 €</div></div>
+</div>
+<div class="charts">
+  <div class="chart"><h3 data-i18n="chart_stores"></h3><canvas id="storeChart"></canvas></div>
+  <div class="chart"><h3 data-i18n="chart_cats"></h3><canvas id="catChart"></canvas></div>
+  <div class="chart"><h3 data-i18n="chart_shares"></h3><canvas id="pieChart"></canvas></div>
+  <div class="chart"><h3 id="timeTitle"></h3><canvas id="timeChart"></canvas></div>
+</div>
+<table><thead><tr>
+  <th class="sortable" data-key="date" onclick="setSort('date')" data-i18n="th_date"></th>
+  <th class="sortable" data-key="store" onclick="setSort('store')" data-i18n="th_store"></th>
+  <th class="sortable" data-key="category" onclick="setSort('category')" data-i18n="th_category"></th>
+  <th class="sortable" data-key="description" onclick="setSort('description')" data-i18n="th_description"></th>
+  <th class="sortable" data-key="amount" style="text-align:right" onclick="setSort('amount')" data-i18n="th_amount"></th>
+</tr></thead><tbody id="rows"></tbody></table>
+<div class="muted" id="tableInfo" style="margin-top:8px"></div>
+<div class="muted" id="syncStatus" style="margin-top:6px"></div>
+</div>
+<script>
+applyI18n();
+const charts={};
+const colors=['#4285f4','#ea4335','#fbbc04','#34a853','#a142f4','#ff6d01','#46bdc6','#7baaf7','#f07b72','#fcd04f','#71c287','#c58af9','#ff994d','#5f6368'];
+const iso=d=>d.toISOString().slice(0,10);
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const today=()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);};
+const dayForms=()=>I18N[LANG].day_forms||I18N.ru.day_forms;
+function presetRange(p){
+  const t0=today();
+  if(p==='all') return {from:'',to:''};
+  if(p==='thisMonth') return {from:iso(new Date(t0.getFullYear(),t0.getMonth(),1,12)),to:iso(t0)};
+  if(p==='lastMonth') return {from:iso(new Date(t0.getFullYear(),t0.getMonth()-1,1,12)),to:iso(new Date(t0.getFullYear(),t0.getMonth(),0,12))};
+  const n=parseInt(p)||30; const f=new Date(t0); f.setDate(f.getDate()-(n-1)); return {from:iso(f),to:iso(t0)};
+}
+let range=Object.assign({preset:'30',from:'',to:'',store:''},JSON.parse(localStorage.getItem('exp.range')||'{}'));
+function saveRange(){localStorage.setItem('exp.range',JSON.stringify(range));}
+function applyPreset(p){range.preset=p; if(p!=='custom') Object.assign(range,presetRange(p)); saveRange(); load();}
+function applyCustom(){const f=document.getElementById('from').value,t2=document.getElementById('to').value; if(!f||!t2) return; Object.assign(range,{preset:'custom',from:f,to:t2}); saveRange(); load();}
+function setStore(v){range.store=v; saveRange(); load();}
+function query(){const q=new URLSearchParams(); if(range.from) q.set('from',range.from); if(range.to) q.set('to',range.to); if(range.store) q.set('store',range.store); return q.toString()?'?'+q.toString():'';}
+function draw(id,type,labels,data){
+  if(charts[id])charts[id].destroy();
+  charts[id]=new Chart(document.getElementById(id),{type,data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:type==='doughnut'}}}});
+}
+let allRows=[],stores=[],lastStats=null,loadGen=0;
+const state=Object.assign({key:'date',dir:'desc',filter:''},JSON.parse(localStorage.getItem('exp.table')||'{}'));
+async function loadStores(){stores=await api('/api/stores');}
+async function load(){
+  try{
+  const gen=++loadGen;
+  if(range.preset!=='custom') Object.assign(range,presetRange(range.preset));
+  document.getElementById('preset').value=range.preset;
+  const s=await api('/api/stats'+query());
+  if(gen!==loadGen) return;
+  document.getElementById('from').value=s.from; document.getElementById('to').value=s.to;
+  const names=[...new Set([...stores.map(x=>x.name),...Object.keys(s.by_store)])];
+  storeFilter.innerHTML=`<option value="">${t('all_stores')}</option>`+names.map(n=>`<option value="${esc(n)}"${n===range.store?' selected':''}>${esc(n)}</option>`).join('');
+  const dd=s.days;
+  periodLine.innerHTML=t('period_line',{from:fmtDate(s.from),to:fmtDate(s.to),days:dd+' '+plural(dd,dayForms())})+(range.store?` — <b>${esc(range.store)}</b>`:'');
+  total.textContent=eur(s.total);receipts.textContent=s.receipts;average.textContent=eur(s.avg_receipt);perday.textContent=eur(s.per_day);
+  try{const h=await api('/api/health');
+    const box=document.getElementById('healthAlert');
+    if(h.ok){box.className='msg';box.textContent='';}
+    else{box.className='msg error';box.textContent=t('attention')+healthProblems(h).join('; ');}
+  }catch(e){}
+  if(gen!==loadGen) return;
+  document.getElementById('syncStatus').textContent=(s.last_sync?t('last_sync_line',{when:fmtDateTime(s.last_sync)}):'')+t('receipts_total',{n:s.emails_processed});
+  draw('storeChart','bar',Object.keys(s.by_store),Object.values(s.by_store));
+  draw('catChart','bar',Object.keys(s.by_category).map(catName),Object.values(s.by_category));
+  draw('pieChart','doughnut',Object.keys(s.by_category).map(catName),Object.values(s.by_category));
+  const byDay=dd<=92;
+  timeTitle.textContent=t(byDay?'chart_days':'chart_months');
+  const series=byDay?s.by_day:s.by_month;
+  draw('timeChart','bar',Object.keys(series).map(k=>byDay?new Date(k+'T00:00:00').toLocaleDateString(LOCALES[LANG],{day:'2-digit',month:'2-digit'}):k),Object.values(series));
+  const rowsResp=await api('/api/expenses'+query());
+  if(gen!==loadGen) return;
+  allRows=rowsResp;
+  const cats=[...new Set(allRows.map(e=>e.category))].sort((a,b)=>catName(a).localeCompare(catName(b),LOCALES[LANG]));
+  catFilter.innerHTML=`<option value="">${t('all_categories')}</option>`+cats.map(c=>`<option value="${esc(c)}"${c===state.filter?' selected':''}>${esc(catName(c))}</option>`).join('');
+  renderTable(s);
+  }catch(e){show(e.message,'error');}
+}
+function saveState(){localStorage.setItem('exp.table',JSON.stringify(state));}
+function setSort(key){
+  if(state.key===key){state.dir=state.dir==='asc'?'desc':'asc';}
+  else{state.key=key;state.dir=(key==='date'||key==='amount')?'desc':'asc';}
+  saveState();renderTable();
+}
+function setFilter(v){state.filter=v;catFilter.value=v;saveState();renderTable();}
+function renderTable(s){
+  if(s) lastStats=s;
+  document.querySelectorAll('th.sortable').forEach(th=>{th.classList.remove('asc','desc');if(th.dataset.key===state.key)th.classList.add(state.dir);});
+  let list=state.filter?allRows.filter(e=>e.category===state.filter):allRows.slice();
+  const dir=state.dir==='asc'?1:-1,k=state.key,loc=LOCALES[LANG];
+  list.sort((a,b)=>{
+    let r;
+    if(k==='amount')r=a.amount-b.amount;
+    else if(k==='date')r=a.date.localeCompare(b.date)||a.category.localeCompare(b.category,loc);
+    else if(k==='category')r=catName(a.category).localeCompare(catName(b.category),loc)||b.date.localeCompare(a.date);
+    else if(k==='description')r=descriptionOf(a)[0].localeCompare(descriptionOf(b)[0],loc)||b.date.localeCompare(a.date);
+    else r=String(a[k]||'').localeCompare(String(b[k]||''),loc)||b.date.localeCompare(a.date);
+    return r*dir;
+  });
+  const sum=list.reduce((acc,e)=>acc+e.amount,0);
+  const per=lastStats?t('period_range',{from:fmtDate(lastStats.from),to:fmtDate(lastStats.to)}):'';
+  tableInfo.textContent=list.length?t('table_info',{period:per,n:list.length,sum:eur(sum)})+(range.store?' — '+range.store:'')+(state.filter?' — '+catName(state.filter):''):'';
+  rows.innerHTML=list.map(e=>{const [d,tt]=descriptionOf(e);return `<tr><td>${fmtDate(e.date)}</td><td><span class="badge store" data-store="${esc(e.store)}">${esc(e.store)}</span></td><td><span class="badge" data-cat="${esc(e.category)}">${esc(catName(e.category))}</span></td><td title="${esc(tt)}">${esc(d)}</td><td class="amt">${eur(e.amount)}</td></tr>`;}).join('')
+    ||`<tr><td colspan="5" class="muted">${t('empty_period')}</td></tr>`;
+}
+rows.addEventListener('click',ev=>{
+  const b=ev.target.closest('.badge'); if(!b) return;
+  if(b.dataset.store!==undefined){storeFilter.value=b.dataset.store;setStore(b.dataset.store);}
+  else if(b.dataset.cat!==undefined) setFilter(b.dataset.cat);
+});
+async function sync(){
+  syncBtn.disabled=true;syncBtn.textContent=t('syncing');
+  try{
+    const from=range.from?new Date(range.from+'T12:00:00'):null;
+    const days=from?Math.max(7,Math.ceil((today()-from)/86400000)+1):365;
+    const r=await api('/api/sync?days='+Math.min(days,3650),{method:'POST'});show(syncMessage(r),r.status==='busy'?'partial':r.status);
+  }catch(e){show(t('error_prefix')+e.message,'error');}
+  finally{syncBtn.disabled=false;syncBtn.textContent=t('sync_btn');load();}
+}
+function show(txt,c){msg.textContent=txt;msg.className='msg '+c;}
+loadStores().then(load).catch(e=>show(e.message,'error'));
+setInterval(()=>{if(tok())load().catch(e=>show(e.message,'error'));},60000);
+</script>
+</body></html>
