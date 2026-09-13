@@ -1,0 +1,38 @@
+services:
+  expense-tracker:
+    build: .
+    container_name: expense-tracker
+    ports:
+      - "8080:8080"
+      - "80:8080"
+    env_file:
+      - path: .env
+        required: false          # everything can be configured in the web UI
+    environment:
+      - TZ=Europe/Vilnius
+    volumes:
+      - ./data:/app/data
+    restart: always
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1.0
+    pids_limit: 64
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      # Public liveness only; detailed /api/health requires an admin token.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/live',timeout=5)"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s

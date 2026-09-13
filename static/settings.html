@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings</title>
+<script src="/static/i18n.js"></script>
+<script src="/static/api.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f4f5f7;color:#222;padding:24px}
+.wrap{max-width:1100px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.top .right{display:flex;gap:10px;align-items:center}
+h1{font-size:22px} h2{font-size:16px;margin-bottom:12px;color:#333}
+a{color:#1a73e8;text-decoration:none}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 18px}
+label{display:block;font-size:12px;color:#666;margin-bottom:4px}
+input,select,textarea{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:14px;background:#fff;font-family:inherit}
+textarea{min-height:52px;resize:vertical}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button{padding:8px 14px;background:#1a73e8;color:#fff;border:0;border-radius:6px;cursor:pointer;font-size:14px}
+button.sec{background:#eef1f5;color:#222} button.danger{background:#d93025} button:disabled{opacity:.6;cursor:default}
+.hint{font-size:12px;color:#777;margin-top:4px}
+.src{font-size:11px;color:#999;margin-left:6px}
+.msg{padding:10px 14px;border-radius:6px;margin:10px 0;display:none;white-space:pre-wrap}
+.msg.ok{display:block;background:#e6f4ea;color:#1e4620}.msg.warn{display:block;background:#fff4e5;color:#7a4b00}.msg.err{display:block;background:#fce8e6;color:#8a1c12}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px;color:#555;border-bottom:1px solid #e5e5e5;font-size:12px}
+td{padding:6px 8px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+td input,td select,td textarea{font-size:13px;padding:6px}
+.muted{color:#888;font-size:12px}
+details summary{cursor:pointer;color:#1a73e8;font-size:13px}
+pre{white-space:pre-wrap;font-size:12px;background:#fafafa;padding:8px;border-radius:6px;max-height:260px;overflow:auto}
+.pill{display:inline-block;background:#eef1f5;border-radius:12px;padding:2px 8px;font-size:12px;margin:2px 4px 2px 0}
+.ok{color:#1e8e3e} .bad{color:#c5221f}
+select.langSel{width:auto}
+</style>
+</head>
+<body data-title-key="settings_title"><div class="wrap">
+<div class="top"><h1 data-i18n="settings_title"></h1><div class="right"><select class="langSel" data-i18n-title="lang"><option value="ru">RU</option><option value="en">EN</option><option value="lt">LT</option></select><a href="/" data-i18n="back"></a></div></div>
+<div id="health" class="msg"></div>
+<div id="msg" class="msg"></div>
+
+<div class="card"><h2 data-i18n="sec_mail"></h2>
+  <div class="grid">
+    <div><label><span data-i18n="l_host"></span> <span class="src" id="src_IMAP_HOST"></span></label><input id="IMAP_HOST" placeholder="imap.gmail.com"></div>
+    <div><label><span data-i18n="l_user"></span> <span class="src" id="src_IMAP_USER"></span></label><input id="IMAP_USER" placeholder="name@gmail.com"></div>
+    <div><label><span data-i18n="l_password"></span> <span class="src" id="src_IMAP_PASSWORD"></span> <span id="st_IMAP_PASSWORD"></span></label><input id="IMAP_PASSWORD" type="password" autocomplete="new-password" data-i18n-ph="ph_password">
+      <div class="row" style="margin-top:6px"><span class="muted" data-i18n="secret_action"></span><select id="act_IMAP_PASSWORD" style="width:auto;font-size:12px;padding:4px"><option value="keep" data-i18n="secret_keep"></option><option value="clear" data-i18n="secret_clear"></option><option value="reset" data-i18n="secret_reset"></option></select></div>
+      <div class="hint" data-i18n="hint_gmail"></div></div>
+    <div><label><span data-i18n="l_folder"></span> <span class="src" id="src_IMAP_FOLDER"></span></label><input id="IMAP_FOLDER" data-i18n-ph="ph_folder"></div>
+    <div><label><span data-i18n="l_timeout"></span> <span class="src" id="src_IMAP_TIMEOUT_SECONDS"></span></label><input id="IMAP_TIMEOUT_SECONDS" type="number" min="5" max="600"></div>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="sec" onclick="testImap()" data-i18n="test_conn"></button><span class="muted" id="imapTest"></span></div>
+</div>
+
+<div class="card"><h2 data-i18n="sec_stores"></h2>
+  <div class="hint" style="margin-bottom:10px" data-i18n="stores_hint"></div>
+  <table><thead><tr><th data-i18n="th_enabled"></th><th data-i18n="th_name"></th><th data-i18n="th_senders"></th><th data-i18n="th_parser"></th><th data-i18n="th_defcat"></th><th></th></tr></thead><tbody id="storeRows"></tbody></table>
+  <div class="row" style="margin-top:10px"><button class="sec" onclick="addStoreRow()" data-i18n="add_store"></button>
+    <button class="sec" onclick="discover()" id="discoverBtn" data-i18n="discover"></button>
+    <select id="discoverDays" style="width:auto"><option value="60" data-i18n="d_60"></option><option value="90" selected data-i18n="d_90"></option><option value="180" data-i18n="d_180"></option><option value="365" data-i18n="d_365"></option></select>
+    <span class="muted" id="discoverInfo"></span></div>
+  <div id="discoverBox" style="margin-top:12px"></div>
+  <datalist id="catList"></datalist>
+</div>
+
+<div class="card"><h2 data-i18n="sec_schedule"></h2>
+  <div class="grid">
+    <div><label><span data-i18n="l_daily"></span> <span class="src" id="src_SYNC_DAILY_AT"></span></label><input id="SYNC_DAILY_AT" placeholder="08:00"></div>
+    <div><label><span data-i18n="l_interval"></span> <span class="src" id="src_SYNC_INTERVAL_MINUTES"></span></label><input id="SYNC_INTERVAL_MINUTES" type="number" min="5"></div>
+    <div><label><span data-i18n="l_retry_min"></span> <span class="src" id="src_SYNC_RETRY_MINUTES"></span></label><input id="SYNC_RETRY_MINUTES" type="number" min="5"></div>
+    <div><label><span data-i18n="l_retry_max"></span> <span class="src" id="src_SYNC_RETRY_MAX"></span></label><input id="SYNC_RETRY_MAX" type="number" min="0"></div>
+    <div><label><span data-i18n="l_timeout_min"></span> <span class="src" id="src_SYNC_TIMEOUT_MINUTES"></span></label><input id="SYNC_TIMEOUT_MINUTES" type="number" min="5"></div>
+    <div><label><span data-i18n="l_stale"></span> <span class="src" id="src_STALE_AFTER_HOURS"></span></label><input id="STALE_AFTER_HOURS" type="number" min="2"></div>
+    <div><label><span data-i18n="l_no_receipts"></span> <span class="src" id="src_NO_RECEIPTS_ALERT_DAYS"></span></label><input id="NO_RECEIPTS_ALERT_DAYS" type="number" min="1"></div>
+    <div><label><span data-i18n="l_window"></span> <span class="src" id="src_SYNC_WINDOW_DAYS"></span></label><input id="SYNC_WINDOW_DAYS" type="number" min="1"></div>
+    <div><label><span data-i18n="l_window_max"></span> <span class="src" id="src_SYNC_WINDOW_MAX_DAYS"></span></label><input id="SYNC_WINDOW_MAX_DAYS" type="number" min="30"></div>
+    <div><label><span data-i18n="l_max_failed"></span> <span class="src" id="src_MAX_FAILED_ATTEMPTS"></span></label><input id="MAX_FAILED_ATTEMPTS" type="number" min="1"></div>
+  </div>
+</div>
+
+<div class="card"><h2 data-i18n="sec_claude"></h2>
+  <div class="grid">
+    <div><label><span data-i18n="l_api_key"></span> <span class="src" id="src_ANTHROPIC_API_KEY"></span> <span id="st_ANTHROPIC_API_KEY"></span></label><input id="ANTHROPIC_API_KEY" type="password" autocomplete="new-password" data-i18n-ph="ph_password">
+      <div class="row" style="margin-top:6px"><span class="muted" data-i18n="secret_action"></span><select id="act_ANTHROPIC_API_KEY" style="width:auto;font-size:12px;padding:4px"><option value="keep" data-i18n="secret_keep"></option><option value="clear" data-i18n="secret_clear"></option><option value="reset" data-i18n="secret_reset"></option></select></div>
+      <div class="hint" data-i18n="hint_claude"></div></div>
+    <div><label><span data-i18n="l_model"></span> <span class="src" id="src_CLAUDE_MODEL"></span></label><input id="CLAUDE_MODEL"></div>
+  </div>
+</div>
+
+<div class="card"><h2 data-i18n="sec_access"></h2>
+  <div class="grid">
+    <div><label><span data-i18n="l_admin_token"></span> <span class="src" id="src_ADMIN_TOKEN"></span> <span id="st_ADMIN_TOKEN"></span></label><input id="ADMIN_TOKEN" type="password" autocomplete="new-password" data-i18n-ph="ph_password">
+      <div class="row" style="margin-top:6px"><span class="muted" data-i18n="secret_action"></span><select id="act_ADMIN_TOKEN" style="width:auto;font-size:12px;padding:4px"><option value="keep" data-i18n="secret_keep"></option><option value="reset" data-i18n="secret_reset"></option></select></div>
+      <div class="hint" data-i18n="hint_token"></div></div>
+  </div>
+</div>
+
+<div class="row" style="margin-bottom:16px"><button onclick="saveAll()" id="saveBtn" data-i18n="save_settings"></button></div>
+
+<div class="card"><h2 data-i18n="sec_maint"></h2>
+  <div class="row"><button class="sec" onclick="syncNow()" data-i18n="sync_now"></button><select id="syncDays" style="width:auto"><option value="30" data-i18n="s_30"></option><option value="90" data-i18n="s_90"></option><option value="365" data-i18n="s_365"></option></select>
+    <button class="danger" onclick="reprocess()" data-i18n="reprocess"></button><label style="width:auto;font-size:13px"><input type="checkbox" id="forceRe" style="width:auto"> force</label></div>
+  <div class="hint" data-i18n="hint_reprocess"></div>
+  <h2 style="margin-top:16px" data-i18n="sec_journal"></h2>
+  <table><thead><tr><th data-i18n="th_when"></th><th data-i18n="th_who"></th><th data-i18n="th_status"></th><th data-i18n="th_message"></th></tr></thead><tbody id="runRows"></tbody></table>
+  <h2 style="margin-top:16px" data-i18n="sec_problems"></h2>
+  <div id="problems" class="muted">…</div>
+</div>
+</div>
+<script>
+applyI18n();
+const PLAIN=['IMAP_HOST','IMAP_USER','IMAP_FOLDER','IMAP_TIMEOUT_SECONDS','SYNC_DAILY_AT','SYNC_INTERVAL_MINUTES','SYNC_RETRY_MINUTES','SYNC_RETRY_MAX','SYNC_TIMEOUT_MINUTES','STALE_AFTER_HOURS','NO_RECEIPTS_ALERT_DAYS','SYNC_WINDOW_DAYS','SYNC_WINDOW_MAX_DAYS','MAX_FAILED_ATTEMPTS','CLAUDE_MODEL'];
+const SECRETS=['IMAP_PASSWORD','ANTHROPIC_API_KEY','ADMIN_TOKEN'];
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+let loaded={};
+function show(txt,c){msg.textContent=txt;msg.className='msg '+c;window.scrollTo({top:0,behavior:'smooth'});}
+async function loadAll(){
+  try{
+    const h=await api('/api/health');
+    health.className='msg '+(h.ok?'ok':'warn');
+    const ls=h.last_sync||{};
+    health.textContent=(h.ok?t('health_ok'):t('health_problems')+healthProblems(h).join('; ')+'. ')+(h.admin_token_set?'':t('no_token_warn'))+
+      t('schedule_line',{schedule:scheduleName(h),status:statusName(ls.status),when:ls.finished_at?t('at_time',{when:fmtDateTime(ls.finished_at)}):'',next:ls.next_sync?t('next_sync',{next:ls.next_sync.replace('T',' ')}):''});
+    const s=await api('/api/settings'); loaded=s.settings;
+    for(const k of PLAIN){const it=loaded[k]; document.getElementById(k).value=it.value??''; document.getElementById('src_'+k).textContent=t('src_'+it.source);}
+    for(const k of SECRETS){const it=loaded[k]; document.getElementById('src_'+k).textContent=it.set?t('src_'+it.source):(it.source==='secrets'?t('src_secrets_null'):''); document.getElementById('st_'+k).innerHTML=it.set?`<span class="ok">${t('set_yes')}</span>`:`<span class="bad">${t('set_no')}</span>`;}
+    await loadStores(); await loadRuns(); await loadProblems();
+    try{const st=await api('/api/stats'); catList.innerHTML=[...new Set([...Object.keys(CATS_I18N),...Object.keys(st.by_category)])].map(c=>`<option value="${esc(catName(c))}">`).join('');}catch(e){}
+  }catch(e){show(t('load_failed')+e.message,'err');}
+}
+async function saveAll(){
+  const v={};
+  for(const k of PLAIN){const val=document.getElementById(k).value.trim(); if(val!==String(loaded[k]?.value??'')) v[k]=val;}
+  for(const k of SECRETS){const el=document.getElementById(k),act=document.getElementById('act_'+k).value; if(act==='clear') v[k]='__clear__'; else if(act==='reset') v[k]='__reset__'; else if(el.value) v[k]=el.value;}
+  if(!Object.keys(v).length){show(t('no_changes'),'warn');return;}
+  const clearing=Object.entries(v).filter(([k,val])=>val==='__clear__').map(([k])=>t({IMAP_PASSWORD:'clr_desc_password',ANTHROPIC_API_KEY:'clr_desc_key',ADMIN_TOKEN:'clr_desc_token'}[k]));
+  if(clearing.length && !confirm(t('confirm_clear',{what:clearing.join(', ')}))) return;
+  saveBtn.disabled=true;
+  try{
+    await api('/api/settings',{method:'PUT',body:JSON.stringify(v)});
+    if(v.ADMIN_TOKEN==='__reset__') sessionStorage.removeItem('adminToken');
+    else if(v.ADMIN_TOKEN) sessionStorage.setItem('adminToken',v.ADMIN_TOKEN.trim());
+    for(const k of SECRETS){document.getElementById(k).value='';document.getElementById('act_'+k).value='keep';}
+    show(t('saved'),'ok'); await loadAll();
+  }catch(e){show(t('error_prefix')+e.message,'err');}
+  finally{saveBtn.disabled=false;}
+}
+async function testImap(){
+  imapTest.textContent=t('testing');
+  const body={IMAP_HOST:IMAP_HOST.value.trim(),IMAP_USER:IMAP_USER.value.trim(),IMAP_FOLDER:IMAP_FOLDER.value.trim()};
+  if(IMAP_PASSWORD.value) body.IMAP_PASSWORD=IMAP_PASSWORD.value;
+  try{const r=await api('/api/settings/test-imap',{method:'POST',body:JSON.stringify(body)});
+    imapTest.innerHTML=`<span class="ok">${t('test_ok')}</span>`+esc(t('test_folder',{folder:r.folder}))+(r.warning?' — '+esc(r.warning):'')+esc(t('test_mails',{days:r.days}))+Object.entries(r.per_store).map(([k,n])=>`${esc(k)} — ${n}`).join(', ');
+  }catch(e){imapTest.innerHTML='<span class="bad">'+esc(e.message)+'</span>';}
+}
+let stores=[];
+function storeRow(s,isNew){
+  const id=s.id??'new'+Math.random().toString(36).slice(2,7);
+  return `<tr data-id="${id}" data-new="${isNew?1:0}">
+    <td><input type="checkbox" class="en" ${s.enabled!==false?'checked':''} style="width:auto"></td>
+    <td><input class="name" value="${esc(s.name)}" placeholder="${esc(t('ph_store_name'))}"></td>
+    <td><textarea class="senders" placeholder="${esc(t('ph_senders'))}">${esc(s.senders)}</textarea></td>
+    <td><select class="parser">${['auto','maxima','wolt','generic'].map(p=>`<option${(s.parser||'auto')===p?' selected':''}>${p}</option>`).join('')}</select></td>
+    <td><input class="cat" list="catList" value="${esc(catName(s.default_category||''))}" placeholder="${esc(t('ph_defcat'))}"></td>
+    <td class="row"><button class="sec" onclick="saveStore(this)">${t('save')}</button><button class="danger" onclick="deleteStore(this)">✕</button></td></tr>`;
+}
+async function loadStores(){stores=await api('/api/stores'); storeRows.innerHTML=stores.map(s=>storeRow(s,false)).join('');}
+function addStoreRow(s){storeRows.insertAdjacentHTML('beforeend',storeRow(s||{name:'',senders:'',parser:'auto',default_category:'',enabled:true},true));}
+async function saveStore(btn){
+  const tr=btn.closest('tr'); const data={name:tr.querySelector('.name').value,senders:tr.querySelector('.senders').value,parser:tr.querySelector('.parser').value,default_category:catKey(tr.querySelector('.cat').value.trim()),enabled:tr.querySelector('.en').checked};
+  try{
+    if(tr.dataset.new==='1') await api('/api/stores',{method:'POST',body:JSON.stringify(data)});
+    else await api('/api/stores/'+tr.dataset.id,{method:'PUT',body:JSON.stringify(data)});
+    show(t('store_saved',{name:data.name}),'ok'); await loadStores();
+  }catch(e){show(t('error_prefix')+e.message,'err');}
+}
+async function deleteStore(btn){
+  const tr=btn.closest('tr'); if(tr.dataset.new==='1'){tr.remove();return;}
+  if(!confirm(t('confirm_delete_store'))) return;
+  try{await api('/api/stores/'+tr.dataset.id,{method:'DELETE'}); await loadStores();}catch(e){show(t('error_prefix')+e.message,'err');}
+}
+let discovered=[];
+function addCandidate(i){const c=discovered[i]; if(!c) return; addStoreRow({name:(c.name||c.sender).slice(0,40),senders:c.sender,parser:'auto',default_category:c.suggested_category||'',enabled:true}); window.scrollTo({top:storeRows.getBoundingClientRect().bottom+window.scrollY-200,behavior:'smooth'});}
+async function discover(){
+  discoverBtn.disabled=true; discoverInfo.textContent=t('discovering'); discoverBox.innerHTML='';
+  try{const r=await api('/api/discover?days='+discoverDays.value,{method:'POST'});
+    discovered=r.candidates;
+    discoverInfo.textContent=t('discover_info',{scanned:r.scanned,days:r.days,trunc:r.truncated?t('discover_trunc'):'',n:r.candidates.length});
+    discoverBox.innerHTML=`<table><thead><tr><th>${t('th_sender')}</th><th>${t('th_mails')}</th><th>${t('th_pdf')}</th><th>${t('th_subjects')}</th><th></th></tr></thead><tbody>`+r.candidates.map((c,i)=>`<tr><td><b>${esc(c.name||c.sender)}</b><br><span class="muted">${esc(c.sender)}</span></td><td>${c.count}</td><td>${c.pdf||''}</td><td class="muted">${c.subjects.map(esc).join('<br>')}</td><td>${c.already?`<span class="muted">${t('already')}</span>`:`<button class="sec" onclick="addCandidate(${i})">${t('add')}</button>`}</td></tr>`).join('')+'</tbody></table>';
+  }catch(e){discoverInfo.innerHTML='<span class="bad">'+esc(e.message)+'</span>';}
+  finally{discoverBtn.disabled=false;}
+}
+async function loadRuns(){const rs=await api('/api/runs?limit=12'); runRows.innerHTML=rs.map(r=>`<tr><td>${fmtDateTime(r.started_at)}</td><td>${esc(triggerName(r.trigger))}</td><td class="${r.status==='success'?'ok':(r.status==='error'?'bad':'')}">${esc(statusName(r.status))}</td><td>${esc(syncMessage(r))}</td></tr>`).join('')||`<tr><td colspan="4" class="muted">${t('journal_empty')}</td></tr>`;}
+async function loadProblems(){
+  try{const ps=await api('/api/receipts/problems?days=30');
+    problems.innerHTML=ps.length?ps.map(p=>`<details><summary>${fmtDate(p.date)} · ${esc(p.store)} · ${esc(p.subject)} <span class="pill">${t(p.mode==='failed'?'mode_failed':'mode_unparsed')}</span></summary><pre>${esc(p.preview||t('no_text'))}</pre></details>`).join(''):t('problems_none');
+  }catch(e){problems.textContent=e.message;}
+}
+async function syncNow(){show(t('syncing'),'warn');try{const r=await api('/api/sync?days='+syncDays.value,{method:'POST'});show(syncMessage(r),r.status==='success'?'ok':'warn');await loadAll();}catch(e){show(t('error_prefix')+e.message,'err');}}
+async function reprocess(){
+  if(!confirm(t('confirm_reprocess'))) return;
+  show(t('reprocessing'),'warn');
+  try{const r=await api('/api/reprocess?confirm=yes'+(forceRe.checked?'&force=yes':''),{method:'POST'});show(syncMessage(r),r.status==='success'?'ok':(r.status==='error'?'err':'warn'));await loadAll();}
+  catch(e){show(t('error_prefix')+e.message,'err');}
+}
+loadAll();
+</script>
+</body></html>
