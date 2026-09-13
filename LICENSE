@@ -1,0 +1,60 @@
+PRIVATE, NON-COMMERCIAL USE LICENSE
+Version 1.0
+
+Copyright (c) 2026 Egor Dremov
+All rights reserved except as expressly granted below.
+
+1. Scope
+
+This license applies to the original source code and documentation of Mail
+Receipt Expense Tracker (the "Software") for which Egor Dremov is the copyright
+holder. Third-party dependencies, components and assets remain governed by
+their respective licenses; this license does not replace those licenses.
+
+2. Permitted private use
+
+You, as an individual, may download, run, make private copies of, and modify
+the Software solely for your own personal, private and non-commercial use on
+systems you control. This permission is non-exclusive and non-transferable.
+Private modifications must remain subject to the same restrictions.
+
+3. Uses requiring separate permission
+
+Without prior written permission from the copyright holder, you may not:
+
+- Use the Software commercially or for or on behalf of a business, employer,
+  organization or client, including internal business use.
+- Sell, rent, sublicense, publish, distribute or otherwise provide copies of
+  the Software or modified versions to third parties.
+- Offer the Software or its functionality to others as a hosted service,
+  public website, SaaS product or API, whether paid or free.
+- Remove or alter copyright, license or attribution notices.
+
+All permitted copies and modifications must retain this license and the
+copyright notice. Uses outside Section 2 require separate written permission.
+This is a restricted-use license, not an open source license.
+
+4. Legal and hosting-platform exceptions
+
+Nothing in this license limits rights or exceptions that applicable law does
+not permit the copyright holder to restrict. If the copyright holder makes
+the Software available in a public GitHub repository, this license does not
+withdraw the rights to view and fork that repository provided by GitHub's
+Terms of Service. Those platform permissions do not by themselves authorize
+commercial use or other uses outside their scope.
+
+5. Termination
+
+The permissions granted by this license end if you breach its conditions.
+You must then stop using the Software and delete copies under your control,
+except to the extent retention is required by applicable law. This does not
+affect rights that exist independently of this license.
+
+6. No warranty; limitation of liability
+
+TO THE FULLEST EXTENT ALLOWED BY APPLICABLE LAW, THE SOFTWARE IS SUPPLIED
+WITHOUT WARRANTIES OR GUARANTEES, INCLUDING GUARANTEES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE OR NON-INFRINGEMENT. THE COPYRIGHT
+HOLDER DOES NOT PROMISE ACCURACY, SECURITY, AVAILABILITY OR SUPPORT AND IS NOT
+RESPONSIBLE FOR LOSSES, DAMAGES, CLAIMS OR EXPENSES ARISING FROM THE USE OF,
+INABILITY TO USE, OR RELIANCE ON THE SOFTWARE.

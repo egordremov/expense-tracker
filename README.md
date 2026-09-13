@@ -1,5 +1,7 @@
 # Mail Receipt Expense Tracker
 
+**License:** [Private, non-commercial use only](LICENSE). Other uses require the copyright holder's written permission.
+
 **[English](#english)** · [Русский](#русский)
 
 <a id="english"></a>
